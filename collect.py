@@ -3,7 +3,7 @@ import pandas as pd
 import time
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from urllib.parse import quote
 import xml.etree.ElementTree as ET
 
@@ -51,9 +51,14 @@ REQUEST_TIMEOUT = 15
 SLEEP_BETWEEN_REQUESTS = 0.3  # API 서버 부담 방지
 
 # 이번 실행에서 수집된 모든 행은 "같은 수집시간"으로 기록한다.
-# 예정된 30분 정각이 아니라 실제로 이 스크립트가 실행된 시각을 그대로 기록하므로,
+# 예정된 정각이 아니라 실제로 이 스크립트가 실행된 시각을 그대로 기록하므로,
 # GitHub Actions가 지연되더라도 데이터 자체의 시각 정보는 항상 정확하다.
-COLLECTED_AT = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#
+# GitHub Actions 호스팅 러너는 시스템 시간대가 UTC로 고정되어 있어서
+# datetime.now()를 그대로 쓰면 UTC가 찍힌다. 분석 편의를 위해
+# 한국 표준시(KST, UTC+9)로 명시적으로 변환해서 기록한다.
+KST = timezone(timedelta(hours=9))
+COLLECTED_AT = datetime.now(KST).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def fetch_area_population(area_name: str) -> dict:
@@ -114,7 +119,7 @@ def save_rows(rows: list[dict]) -> None:
 
 def main() -> None:
     print("=" * 60)
-    print("수집 시작 (실제 실행 시각):", COLLECTED_AT)
+    print("수집 시작 (실제 실행 시각, KST):", COLLECTED_AT)
 
     rows = []
     failed_areas = []
